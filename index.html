@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>賽馬抽獎大賽 - 幸運前20名大激鬥</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti 彩帶特效 -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts: Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chango&family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at 50% 0%, #17381b 0%, #08150a 100%);
+      color: #f3f4f6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .racing-font {
+      font-family: 'Chango', 'Noto Sans TC', cursive;
+    }
+    /* 自訂滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.25);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #eab308;
+      border-radius: 3px;
+    }
+    @keyframes pulse-fast {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .pulse-btn {
+      animation: pulse-fast 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen selection:bg-yellow-500 selection:text-black">
+
+  <!-- 頂部導航與標題列 -->
+  <header class="bg-black/65 backdrop-blur-md border-b border-yellow-600/40 px-4 py-3 sticky top-0 z-30 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-2xl shadow-lg shadow-yellow-500/25">
+          🐎
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-500 racing-font">
+            DERBY LOTTERY
+          </h1>
+          <p class="text-xs text-yellow-300/80 font-medium">150 號賽馬大激鬥・前 20 名幸運得獎者！</p>
+        </div>
+      </div>
+
+      <!-- 控制按鈕區 -->
+      <div class="flex items-center gap-2">
+        <button id="soundToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/90 hover:bg-zinc-700 text-xs text-zinc-200 border border-zinc-700 shadow transition">
+          <span id="soundIcon">🔊</span>
+          <span id="soundLabel">音效：開</span>
+        </button>
+        <button id="configToggleBtn" class="lg:hidden px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white shadow">
+          賽事設定
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容區 -->
+  <main class="max-w-7xl mx-auto w-full p-3 md:p-6 flex-1 flex flex-col gap-6">
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- 左側賽事設定面板 -->
+      <div id="settingsPanel" class="lg:col-span-1 bg-zinc-900/90 border border-yellow-500/25 rounded-2xl p-4 md:p-5 flex flex-col gap-4 shadow-2xl backdrop-blur">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h2 class="text-base font-bold flex items-center gap-2 text-yellow-400">
+            <span>⚙️</span> 抽獎與名單設定
+          </h2>
+          <span id="participantCountBadge" class="text-xs bg-yellow-950 text-yellow-400 px-2.5 py-0.5 rounded-full border border-yellow-700/80 font-mono">
+            150 匹馬
+          </span>
+        </div>
+
+        <!-- 得獎名額設定 -->
+        <div>
+          <div class="flex justify-between items-center mb-1 text-xs font-semibold text-zinc-300">
+            <label for="winnerCountInput">得獎名額（抽出前幾名）</label>
+            <span id="winnerCountDisplay" class="text-yellow-400 font-extrabold text-sm">20 名</span>
+          </div>
+          <input type="range" id="winnerCountInput" min="1" max="50" value="20" class="w-full accent-amber-500 cursor-pointer h-2 bg-zinc-700 rounded-lg">
+          <div class="flex justify-between text-[10px] text-zinc-400 mt-1 font-mono">
+            <span>1 名</span>
+            <span class="text-yellow-400 font-bold">20 名 (預設)</span>
+            <span>50 名</span>
+          </div>
+        </div>
+
+        <!-- 賽事速度控制 -->
+        <div>
+          <div class="flex justify-between items-center mb-1 text-xs font-semibold text-zinc-300">
+            <label for="speedRangeInput">賽事速度 (預設慢速 50%)</label>
+            <span id="speedValueDisplay" class="text-amber-400 font-bold text-sm">0.5x 慢速賞析</span>
+          </div>
+          <input type="range" id="speedRangeInput" min="0.25" max="1.5" step="0.05" value="0.5" class="w-full accent-yellow-400 cursor-pointer h-2 bg-zinc-700 rounded-lg">
+          <div class="flex justify-between text-[10px] text-zinc-400 mt-1 font-mono">
+            <span>0.25x 超慢</span>
+            <span>0.5x 推薦</span>
+            <span>1.5x 極速</span>
+          </div>
+        </div>
+
+        <!-- 參賽名單輸入框 -->
+        <div class="flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="namesTextarea" class="text-xs font-semibold text-zinc-300">參賽者名單 (每行一位/號碼)</label>
+            <div class="flex items-center gap-2">
+              <button id="quickGenerateBtn" class="text-[11px] text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+                1~100號
+              </button>
+              <button id="resetDefaultBtn" class="text-[11px] text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                1~150號
+              </button>
+            </div>
+          </div>
+          <textarea id="namesTextarea" rows="8" class="w-full text-xs font-mono bg-zinc-950/80 border border-zinc-700 rounded-xl p-2.5 text-zinc-300 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 resize-none leading-relaxed" placeholder="每行輸入一個姓名或號碼..."></textarea>
+          <p class="text-[11px] text-zinc-400 mt-1.5 flex items-center gap-1">
+            <span>🎲</span>
+            <span>密碼學安全隨機洗牌，機率嚴格均等。</span>
+          </p>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="pt-2 flex flex-col gap-2.5">
+          <button id="startRaceBtn" class="w-full py-3.5 px-4 rounded-xl font-black text-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-zinc-950 hover:brightness-110 active:scale-95 shadow-xl shadow-yellow-500/25 transition pulse-btn flex items-center justify-center gap-2">
+            <span>🏁</span> 開始賽馬抽獎！
+          </button>
+          <button id="resetRaceBtn" disabled class="w-full py-2 px-3 rounded-lg text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition disabled:opacity-40 disabled:pointer-events-none">
+            🔄 重新開始 / 重置賽道
+          </button>
+        </div>
+      </div>
+
+      <!-- 右側賽馬主賽場 -->
+      <div class="lg:col-span-3 flex flex-col gap-4">
+        
+        <!-- 賽事 HUD 資訊列 -->
+        <div class="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow">
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="raceStatusText" class="font-extrabold text-sm md:text-base text-zinc-200">
+                等待鳴槍起跑...
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-800/80 px-2.5 py-1 rounded-md border border-zinc-700/60">
+              <span>剩餘距離：</span>
+              <span id="distanceHud" class="text-yellow-400 font-mono font-bold">1200 M</span>
+            </div>
+          </div>
+          
+          <div class="text-xs text-amber-300/90 font-medium flex items-center gap-1.5">
+            <span class="bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+              ⚡ 後段將觸發「末腳爆發」逆轉大超車
+            </span>
+          </div>
+        </div>
+
+        <!-- 賽馬動態畫布容器 -->
+        <div class="relative w-full rounded-2xl overflow-hidden border-2 border-yellow-600/40 shadow-2xl bg-zinc-950 aspect-[16/9] min-h-[380px] md:min-h-[480px]">
+          <!-- Canvas 畫布 -->
+          <canvas id="raceCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+          <!-- 現場實況即時快訊字幕 -->
+          <div id="liveTicker" class="absolute top-3 left-3 right-3 md:left-4 md:right-4 bg-black/65 backdrop-blur-md border border-yellow-500/40 rounded-xl px-4 py-2 flex items-center justify-between z-10 transition-all opacity-0 shadow-lg">
+            <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-yellow-300 truncate">
+              <span class="animate-pulse">🎙️ 實況播報：</span>
+              <span id="liveTickerText" class="text-white tracking-wide truncate">閘門開啟，150 匹群馬衝出跑道！</span>
+            </div>
+            <span id="liveLeaderTag" class="text-[11px] bg-yellow-400 text-zinc-950 px-2.5 py-0.5 rounded-full font-black tracking-wider uppercase ml-2 shrink-0">
+              領跑中
+            </span>
+          </div>
+
+          <!-- 倒數計時遮罩 -->
+          <div id="countdownOverlay" class="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center hidden z-20">
+            <div id="countdownNumber" class="text-7xl md:text-9xl font-black text-yellow-400 racing-font scale-125 transition-transform duration-300 drop-shadow-[0_10px_25px_rgba(234,179,8,0.6)]">
+              3
+            </div>
+            <p id="countdownTip" class="text-yellow-200/90 text-sm md:text-base mt-3 font-bold tracking-wider">
+              各就各位...
+            </p>
+          </div>
+
+          <!-- 進入終點直道橫幅標籤 -->
+          <div id="finishBanner" class="absolute top-14 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 via-amber-600 to-red-600 text-white font-black px-6 py-1.5 rounded-full text-xs md:text-sm tracking-widest uppercase border border-amber-400 shadow-2xl pointer-events-none opacity-0 transition-opacity duration-300 z-10 flex items-center gap-2">
+            <span>⚡</span> 進入最後直線決戰！黑馬群急速突圍！ <span>⚡</span>
+          </div>
+        </div>
+
+        <!-- 即時排名動態看板 (Top 10 即時雷達) -->
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏇</span> 即時前線跑位動態 (Top 10 即時雷達)
+            </h3>
+            <span class="text-[11px] text-zinc-500 font-mono">實況秒級更新</span>
+          </div>
+          <div id="liveLeaderboard" class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2">
+            <!-- 動態注入前 10 號牌 -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- 獲獎結果彈窗 Modal -->
+  <div id="resultModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 md:p-6 z-50">
+    <div class="bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-2 border-yellow-500/60 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+      
+      <!-- 彈窗頂部 (榮譽頒獎台) -->
+      <div class="bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-yellow-600/30 p-5 md:p-6 border-b border-yellow-500/30 text-center relative">
+        <button id="closeModalBtn" class="absolute right-4 top-4 w-9 h-9 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center text-lg transition">
+          ✕
+        </button>
+        <span class="inline-block px-3 py-1 rounded-full bg-yellow-400/20 text-yellow-300 text-xs font-extrabold uppercase tracking-widest border border-yellow-400/30 mb-2">
+          Official Derby Results
+        </span>
+        <h2 class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-200 racing-font">
+          🎉 賽馬抽獎得獎名單 🎉
+        </h2>
+        <p class="text-zinc-300 text-xs md:text-sm mt-1">恭喜以下跑進前 <span id="modalWinnerCountSpan" class="text-yellow-400 font-bold">20</span> 名的幸運得獎者！</p>
+      </div>
+
+      <!-- 前三名頒獎台特寫 -->
+      <div id="podiumArea" class="grid grid-cols-3 gap-2 md:gap-4 p-4 bg-zinc-900/70 border-b border-zinc-800/80 items-end text-center">
+        <!-- 亞軍 -->
+        <div class="order-1 bg-zinc-800/80 rounded-xl p-3 border border-slate-400/40 flex flex-col items-center">
+          <div class="text-2xl mb-1">🥈</div>
+          <span class="text-[11px] font-bold text-slate-300">亞軍 (第 2 名)</span>
+          <p id="podium2" class="text-sm md:text-base font-black text-slate-100 truncate w-full mt-0.5">--</p>
+        </div>
+        <!-- 冠軍 -->
+        <div class="order-2 bg-gradient-to-b from-amber-950/70 to-zinc-800/90 rounded-2xl p-4 border-2 border-yellow-400 shadow-xl shadow-yellow-500/20 flex flex-col items-center -translate-y-2">
+          <div class="text-3xl mb-1">👑 🥇</div>
+          <span class="text-xs font-black text-yellow-400 tracking-wider">冠軍 (第一名)</span>
+          <p id="podium1" class="text-base md:text-lg font-black text-yellow-200 truncate w-full mt-0.5">--</p>
+        </div>
+        <!-- 季軍 -->
+        <div class="order-3 bg-zinc-800/80 rounded-xl p-3 border border-amber-700/50 flex flex-col items-center">
+          <div class="text-2xl mb-1">🥉</div>
+          <span class="text-[11px] font-bold text-amber-500">季軍 (第 3 名)</span>
+          <p id="podium3" class="text-sm md:text-base font-black text-amber-200 truncate w-full mt-0.5">--</p>
+        </div>
+      </div>
+
+      <!-- 全部獲獎名單滾動列表 -->
+      <div class="p-4 md:p-6 overflow-y-auto flex-1">
+        <h4 class="text-xs font-bold text-zinc-400 mb-3 flex items-center justify-between">
+          <span>🏅 完整得獎排位 (依衝線順序)</span>
+          <span class="text-[11px] text-zinc-500 font-normal">保證公平均等隨機</span>
+        </h4>
+        <div id="fullWinnersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+          <!-- 動態載入得獎者卡片 -->
+        </div>
+      </div>
+
+      <!-- 彈窗底部操作列 -->
+      <div class="p-4 bg-zinc-950 border-t border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+        <span id="copyToast" class="text-xs text-emerald-400 font-semibold opacity-0 transition-opacity flex items-center gap-1">
+          <span>✅</span> 名單已複製到剪貼簿！可直接貼至 LINE、公告或信件！
+        </span>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button id="copyWinnersBtn" class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl font-bold text-sm bg-yellow-500 hover:bg-yellow-400 text-zinc-950 flex items-center justify-center gap-1.5 shadow-lg shadow-yellow-500/20 transition active:scale-95">
+            <span>📋</span> 複製完整得獎名單
+          </button>
+          <button id="modalCloseBtn2" class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition">
+            關閉
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Web Audio 音效引擎
+     */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.gallopInterval = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+      }
+      playCountBeep(freq = 600, duration = 0.1) {
+        if (!this.enabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      }
+      playGunshot() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+      }
+      startGallop() {
+        if (!this.enabled || !this.ctx || this.gallopInterval) return;
+        let beat = 0;
+        this.gallopInterval = setInterval(() => {
+          if (!this.enabled || !this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(beat % 2 === 0 ? 115 : 85, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.06);
+          beat++;
+        }, 115);
+      }
+      stopGallop() {
+        if (this.gallopInterval) {
+          clearInterval(this.gallopInterval);
+          this.gallopInterval = null;
+        }
+      }
+      playVictoryFanfare() {
+        if (!this.enabled || !this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        const times = [0, 0.15, 0.3, 0.5];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          const start = this.ctx.currentTime + times[i];
+          const dur = (i === 3) ? 0.75 : 0.13;
+          gain.gain.setValueAtTime(0.3, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(start);
+          osc.stop(start + dur);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // DOM 元素快取
+    const canvas = document.getElementById('raceCanvas');
+    const ctx = canvas.getContext('2d');
+    const namesTextarea = document.getElementById('namesTextarea');
+    const winnerCountInput = document.getElementById('winnerCountInput');
+    const winnerCountDisplay = document.getElementById('winnerCountDisplay');
+    const startRaceBtn = document.getElementById('startRaceBtn');
+    const resetRaceBtn = document.getElementById('resetRaceBtn');
+    const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+    const quickGenerateBtn = document.getElementById('quickGenerateBtn');
+    const countdownOverlay = document.getElementById('countdownOverlay');
+    const countdownNumber = document.getElementById('countdownNumber');
+    const countdownTip = document.getElementById('countdownTip');
+    const raceStatusText = document.getElementById('raceStatusText');
+    const distanceHud = document.getElementById('distanceHud');
+    const finishBanner = document.getElementById('finishBanner');
+    const liveLeaderboard = document.getElementById('liveLeaderboard');
+    const liveTicker = document.getElementById('liveTicker');
+    const liveTickerText = document.getElementById('liveTickerText');
+    const liveLeaderTag = document.getElementById('liveLeaderTag');
+    const resultModal = document.getElementById('resultModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalCloseBtn2 = document.getElementById('modalCloseBtn2');
+    const copyWinnersBtn = document.getElementById('copyWinnersBtn');
+    const copyToast = document.getElementById('copyToast');
+    const fullWinnersGrid = document.getElementById('fullWinnersGrid');
+    const podium1 = document.getElementById('podium1');
+    const podium2 = document.getElementById('podium2');
+    const podium3 = document.getElementById('podium3');
+    const modalWinnerCountSpan = document.getElementById('modalWinnerCountSpan');
+    const participantCountBadge = document.getElementById('participantCountBadge');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundLabel = document.getElementById('soundLabel');
+    const configToggleBtn = document.getElementById('configToggleBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const speedRangeInput = document.getElementById('speedRangeInput');
+    const speedValueDisplay = document.getElementById('speedValueDisplay');
+
+    // 狀態變數
+    let participants = [];
+    let winnerCount = 20;
+    let isRacing = false;
+    let animationFrameId = null;
+    let raceResult = [];
+    let horses = [];
+    let raceProgress = 0;
+    let raceSpeedScale = 0.5;
+    const TOTAL_RACE_METERS = 1200;
+    let finishTriggered = false;
+    let currentLeaderName = '';
+
+    const HORSE_COLORS = [
+      '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
+      '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef',
+      '#f43f5e', '#14b8a6', '#eab308', '#ec4899', '#a855f7'
+    ];
+
+    // 初始化 1~150 號名單
+    function initDefaultParticipants(count = 150) {
+      const list = [];
+      for (let i = 1; i <= count; i++) {
+        list.push(`${i}號選手`);
+      }
+      namesTextarea.value = list.join('\n');
+      updateParticipantsFromInput();
+    }
+
+    // 解析文字框參賽者
+    function updateParticipantsFromInput() {
+      const lines = namesTextarea.value
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      participants = Array.from(new Set(lines));
+      if (participants.length === 0) {
+        participants = ['1號選手'];
+      }
+      participantCountBadge.textContent = `${participants.length} 匹馬`;
+
+      const maxWinners = Math.max(1, participants.length);
+      winnerCountInput.max = Math.min(50, maxWinners);
+      if (parseInt(winnerCountInput.value) > maxWinners) {
+        winnerCountInput.value = maxWinners;
+      }
+      winnerCount = parseInt(winnerCountInput.value);
+      winnerCountDisplay.textContent = `${winnerCount} 名`;
+      modalWinnerCountSpan.textContent = winnerCount;
+    }
+
+    /**
+     * Fisher-Yates 洗牌演算法 (Crypto-secure)
+     * 保證 100% 絕對均等機率
+     */
+    function fisherYatesShuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        let randomFraction;
+        if (window.crypto && window.crypto.getRandomValues) {
+          const uint32 = new Uint32Array(1);
+          window.crypto.getRandomValues(uint32);
+          randomFraction = uint32[0] / (0xFFFFFFFF + 1);
+        } else {
+          randomFraction = Math.random();
+        }
+        const j = Math.floor(randomFraction * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // 初始化 Canvas 尺寸
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.resetTransform?.();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // 建立 150 匹虛擬馬匹模型
+    function setupHorses() {
+      raceResult = fisherYatesShuffle(participants);
+      horses = [];
+
+      const canvasHeight = canvas.parentElement.clientHeight;
+      const trackPaddingTop = 60;
+      const trackPaddingBottom = 40;
+      const usableHeight = canvasHeight - trackPaddingTop - trackPaddingBottom;
+
+      raceResult.forEach((name, rankIndex) => {
+        const color = HORSE_COLORS[rankIndex % HORSE_COLORS.length];
+        const laneFraction = (rankIndex % 28) / 28;
+        const assignedY = trackPaddingTop + laneFraction * usableHeight + (Math.sin(rankIndex) * 8);
+
+        // 戰術風格：0 早期逃馬, 1 穩健先行, 2 末腳逆轉黑馬
+        let tactic = 1; 
+        if (rankIndex < winnerCount) {
+          tactic = Math.random() < 0.65 ? 2 : (Math.random() < 0.5 ? 0 : 1);
+        } else {
+          tactic = Math.random() < 0.35 ? 0 : 1;
+        }
+
+        horses.push({
+          name: name,
+          targetRank: rankIndex,
+          tactic: tactic,
+          laneY: assignedY,
+          color: color,
+          posX: 0,
+          speed: 1.0,
+          swayOffset: Math.random() * Math.PI * 2,
+          legCycle: Math.random() * 10,
+          isFinished: false,
+          finishTime: 0,
+          isSpurting: false,
+          statusTag: ''
+        });
+      });
+      currentLeaderName = '';
+    }
+
+    // 繪製賽道草皮
+    function drawTrack(cameraX, canvasWidth, canvasHeight) {
+      ctx.fillStyle = '#235e26';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      const stripeW = 80;
+      const offset = -(cameraX % (stripeW * 2));
+      for (let x = offset - stripeW; x < canvasWidth + stripeW; x += stripeW * 2) {
+        ctx.fillStyle = '#2a6f2e';
+        ctx.fillRect(x, 0, stripeW, canvasHeight);
+      }
+
+      // 圍欄
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 50, canvasWidth, 6);
+      ctx.fillRect(0, canvasHeight - 20, canvasWidth, 6);
+
+      const postGap = 60;
+      const postOffset = -(cameraX % postGap);
+      for (let x = postOffset; x < canvasWidth + postGap; x += postGap) {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(x, 40, 5, 20);
+        ctx.fillRect(x, canvasHeight - 30, 5, 20);
+      }
+
+      // 距離標誌
+      const meterPixelScale = 4.5;
+      for (let m = 200; m <= TOTAL_RACE_METERS; m += 200) {
+        const markerWorldX = m * meterPixelScale;
+        const screenX = markerWorldX - cameraX;
+        if (screenX > -100 && screenX < canvasWidth + 100) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          ctx.setLineDash([4, 6]);
+          ctx.beginPath();
+          ctx.moveTo(screenX, 55);
+          ctx.lineTo(screenX, canvasHeight - 20);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.beginPath();
+          ctx.roundRect(screenX - 35, 12, 70, 26, 6);
+          ctx.fill();
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`還剩 ${TOTAL_RACE_METERS - m}M`, screenX, 29);
+        }
+      }
+
+      // 終點線
+      const finishWorldX = TOTAL_RACE_METERS * meterPixelScale;
+      const finishScreenX = finishWorldX - cameraX;
+      if (finishScreenX > -150 && finishScreenX < canvasWidth + 200) {
+        const checkSize = 14;
+        for (let y = 56; y < canvasHeight - 20; y += checkSize) {
+          for (let col = 0; col < 2; col++) {
+            const isWhite = ((Math.floor(y / checkSize) + col) % 2 === 0);
+            ctx.fillStyle = isWhite ? '#ffffff' : '#18181b';
+            ctx.fillRect(finishScreenX + col * checkSize, y, checkSize, checkSize);
+          }
+        }
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(finishScreenX - 4, 30, 8, canvasHeight - 45);
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        ctx.roundRect(finishScreenX - 50, 8, 100, 30, 8);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('FINISH 終點', finishScreenX, 28);
+      }
+    }
+
+    // 繪製賽馬與騎師向量圖
+    function drawHorseSprite(x, y, color, numberStr, nameStr, legPhase, rankNum, isSpurting, statusTag) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      const stretch = Math.sin(legPhase);
+      const bob = Math.cos(legPhase * 2) * 2;
+
+      if (isSpurting) {
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-30, -5 + bob);
+        ctx.lineTo(-65 - Math.random() * 15, -5 + bob);
+        ctx.moveTo(-25, 5 + bob);
+        ctx.lineTo(-55 - Math.random() * 15, 5 + bob);
+        ctx.stroke();
+      }
+
+      // 陰影
+      ctx.fillStyle = isSpurting ? 'rgba(234, 179, 8, 0.3)' : 'rgba(0, 0, 0, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(0, 16, 26 + stretch * 4, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 馬身
+      ctx.fillStyle = isSpurting ? '#7c2d12' : '#5c2c16';
+      ctx.beginPath();
+      ctx.roundRect(-20, -10 + bob, 38, 18, 8);
+      ctx.fill();
+
+      // 號碼布
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(-10, -12 + bob, 18, 14, 4);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(rankNum <= 3 ? ['🥇','🥈','🥉'][rankNum-1] : rankNum, -1, -2 + bob);
+
+      // 馬腿
+      ctx.strokeStyle = '#422006';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(14, 2 + bob);
+      ctx.lineTo(24 + stretch * 10, 14 + Math.max(0, -stretch * 8));
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(12, 2 + bob);
+      ctx.lineTo(18 - stretch * 8, 14 + Math.max(0, stretch * 8));
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(-16, 2 + bob);
+      ctx.lineTo(-26 - stretch * 12, 14 + Math.max(0, stretch * 8));
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(-14, 2 + bob);
+      ctx.lineTo(-20 + stretch * 8, 14 + Math.max(0, -stretch * 8));
+      ctx.stroke();
+
+      // 馬頸馬頭
+      ctx.fillStyle = isSpurting ? '#7c2d12' : '#5c2c16';
+      ctx.beginPath();
+      ctx.moveTo(12, -4 + bob);
+      ctx.lineTo(22, -18 + bob);
+      ctx.lineTo(32, -14 + bob);
+      ctx.lineTo(26, 0 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // 鬃毛尾巴
+      ctx.strokeStyle = '#261208';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-20, -6 + bob);
+      ctx.quadraticCurveTo(-34, -2 + bob - stretch * 4, -30, 10 + bob);
+      ctx.stroke();
+
+      // 騎師
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(0, -18 + bob, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-4, -14 + bob, 8, 8);
+
+      // 逆轉氣泡
+      if (statusTag) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        const tagW = statusTag.length * 12 + 10;
+        ctx.roundRect(-tagW / 2, -54 + bob, tagW, 14, 4);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.font = '900 9px sans-serif';
+        ctx.fillText(statusTag, 0, -43 + bob);
+      }
+
+      // 姓名標籤
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.beginPath();
+      const labelW = Math.max(50, nameStr.length * 11);
+      ctx.roundRect(-labelW / 2, -36 + bob, labelW, 16, 4);
+      ctx.fill();
+
+      if (rankNum === 1) {
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = rankNum <= 3 ? '#fef08a' : '#f8fafc';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(nameStr, 0, -24 + bob);
+
+      ctx.restore();
+    }
+
+    // 賽馬主更新迴圈
+    function updateRace() {
+      if (!isRacing) return;
+
+      const meterPixelScale = 4.5;
+      const finishWorldX = TOTAL_RACE_METERS * meterPixelScale;
+
+      raceProgress += 0.00085 * (raceSpeedScale / 0.5); 
+      const clampedProgress = Math.min(1.0, raceProgress);
+
+      let leadingHorseX = 0;
+
+      horses.forEach((h) => {
+        h.legCycle += (0.18 + Math.random() * 0.08) * (raceSpeedScale / 0.5);
+
+        let tacticalBonus = 0;
+        h.isSpurting = false;
+        h.statusTag = '';
+
+        if (clampedProgress < 0.65) {
+          if (h.tactic === 0) {
+            tacticalBonus = 70 * (1 - clampedProgress / 0.65);
+            if (clampedProgress > 0.15 && clampedProgress < 0.45) {
+              h.statusTag = '🔥 領先突破';
+            }
+          } else if (h.tactic === 2) {
+            tacticalBonus = -45 * (1 - clampedProgress / 0.65);
+          }
+        } else {
+          const surgeFactor = (clampedProgress - 0.65) / 0.35;
+          if (h.tactic === 2 && h.targetRank < winnerCount) {
+            tacticalBonus = 60 * Math.pow(surgeFactor, 2);
+            h.isSpurting = true;
+            h.statusTag = '⚡ 後來居上!';
+          } else if (h.tactic === 0) {
+            tacticalBonus = -20 * surgeFactor;
+          }
+        }
+
+        const waveDrama = Math.sin(clampedProgress * 8 + h.swayOffset) * 40 * (1 - Math.pow(clampedProgress, 3));
+        const idealRankSpacing = 24;
+        const targetOffsetAtFinish = -h.targetRank * idealRankSpacing;
+
+        const convergence = Math.pow(clampedProgress, 2.5);
+        const finalOffset = targetOffsetAtFinish * convergence + (tacticalBonus + waveDrama) * (1 - convergence);
+
+        const baseForward = (TOTAL_RACE_METERS * meterPixelScale + 200) * Math.pow(clampedProgress, 1.12);
+        h.posX = baseForward + finalOffset;
+
+        if (h.posX > leadingHorseX) {
+          leadingHorseX = h.posX;
+        }
+
+        if (h.posX >= finishWorldX && !h.isFinished) {
+          h.isFinished = true;
+          h.finishTime = Date.now();
+        }
+      });
+
+      // 攝影機位置
+      const canvasWidth = canvas.parentElement.clientWidth;
+      const canvasHeight = canvas.parentElement.clientHeight;
+      const targetCameraX = Math.max(0, leadingHorseX - canvasWidth * 0.65);
+
+      drawTrack(targetCameraX, canvasWidth, canvasHeight);
+
+      const sortedByY = [...horses].sort((a, b) => a.laneY - b.laneY);
+      const liveStandings = [...horses].sort((a, b) => b.posX - a.posX);
+      const rankMap = new Map();
+      liveStandings.forEach((h, idx) => rankMap.set(h.name, idx + 1));
+
+      if (liveStandings.length > 0) {
+        const topHorse = liveStandings[0];
+        if (topHorse.name !== currentLeaderName) {
+          currentLeaderName = topHorse.name;
+          updateLiveBroadcast(topHorse, clampedProgress);
+        }
+      }
+
+      sortedByY.forEach((h) => {
+        const screenX = h.posX - targetCameraX;
+        if (screenX > -100 && screenX < canvasWidth + 100) {
+          const currentRank = rankMap.get(h.name);
+          drawHorseSprite(screenX, h.laneY, h.color, currentRank, h.name, h.legCycle, currentRank, h.isSpurting, h.statusTag);
+        }
+      });
+
+      const remainingMeters = Math.max(0, Math.round(TOTAL_RACE_METERS - (leadingHorseX / meterPixelScale)));
+      distanceHud.textContent = `${remainingMeters} M`;
+
+      if (raceProgress > 0.70 && !finishTriggered) {
+        finishBanner.style.opacity = '1';
+        raceStatusText.innerHTML = `<span class="text-amber-400 font-bold animate-pulse">🔥 直線衝刺！後來居上大逆轉！</span>`;
+      }
+
+      updateLiveLeaderboardUI(liveStandings.slice(0, 10));
+
+      const topWinnersFinished = horses.filter(h => h.targetRank < winnerCount && h.isFinished).length;
+      if (!finishTriggered && (clampedProgress >= 0.98 || topWinnersFinished >= Math.min(winnerCount, horses.length))) {
+        finishTriggered = true;
+        finishRace();
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(updateRace);
+    }
+
+    function updateLiveBroadcast(leaderHorse, progress) {
+      liveTicker.style.opacity = '1';
+      liveLeaderTag.textContent = `第 1 名：${leaderHorse.name}`;
+      
+      if (progress < 0.3) {
+        liveTickerText.textContent = `【起跑突圍】${leaderHorse.name} 展現爆發力搶先佔領第 1 跑道！`;
+      } else if (progress < 0.65) {
+        const quotes = [
+          `【彎道拉鋸】${leaderHorse.name} 外道發力，強勢奪下領先位置！`,
+          `【群雄激鬥】領先群頻繁換位，${leaderHorse.name} 穩健卡住內道領跑！`,
+          `【戰況激烈】${leaderHorse.name} 與後方馬匹並駕齊驅，差距僅半個馬身！`
+        ];
+        liveTickerText.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+      } else {
+        const lateQuotes = [
+          `⚡【末腳逆轉！】${leaderHorse.name} 從後方群急速竄出，爆發大超車！`,
+          `🔥【終點激鬥】${leaderHorse.name} 發動強力衝刺，搶入前線領銜奪冠！`,
+          `✨【極限追擊】最後直線加速，${leaderHorse.name} 展現後來居上驚人速度！`
+        ];
+        liveTickerText.textContent = lateQuotes[Math.floor(Math.random() * lateQuotes.length)];
+      }
+    }
+
+    function updateLiveLeaderboardUI(topList) {
+      liveLeaderboard.innerHTML = '';
+      topList.forEach((h, idx) => {
+        const tag = document.createElement('div');
+        const isTop3 = idx < 3;
+        tag.className = `flex items-center gap-1.5 p-1.5 rounded-lg border text-xs truncate ${
+          isTop3 
+            ? 'bg-amber-950/60 border-yellow-500/50 text-yellow-300 font-bold' 
+            : 'bg-zinc-800/60 border-zinc-700 text-zinc-300'
+        }`;
+        tag.innerHTML = `
+          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+            idx === 0 ? 'bg-yellow-400 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-amber-600 text-white' : 'bg-zinc-700 text-zinc-300'))
+          }">
+            ${idx + 1}
+          </span>
+          <span class="truncate">${h.name}</span>
+        `;
+        liveLeaderboard.appendChild(tag);
+      });
+    }
+
+    function startRaceCountdown() {
+      updateParticipantsFromInput();
+
+      if (participants.length < 2) {
+        showCustomAlert('參賽名單至少需要 2 位/號碼喔！');
+        return;
+      }
+
+      sound.init();
+      isRacing = false;
+      raceProgress = 0;
+      finishTriggered = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+      setupHorses();
+      resizeCanvas();
+
+      startRaceBtn.disabled = true;
+      resetRaceBtn.disabled = false;
+      namesTextarea.disabled = true;
+      winnerCountInput.disabled = true;
+      finishBanner.style.opacity = '0';
+      liveTicker.style.opacity = '0';
+
+      countdownOverlay.classList.remove('hidden');
+      let count = 3;
+      countdownNumber.textContent = count;
+      countdownTip.textContent = '賽馬進入閘位，各就各位...';
+      sound.playCountBeep(440, 0.12);
+
+      const countInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdownNumber.textContent = count;
+          countdownNumber.style.transform = 'scale(1.4)';
+          setTimeout(() => countdownNumber.style.transform = 'scale(1)', 200);
+          sound.playCountBeep(440 + (3 - count) * 120, 0.12);
+        } else if (count === 0) {
+          countdownNumber.textContent = 'GO!!';
+          countdownTip.textContent = '閘門開啟！全速奔馳！';
+          countdownNumber.classList.add('text-emerald-400');
+          sound.playGunshot();
+          sound.startGallop();
+        } else {
+          clearInterval(countInterval);
+          countdownOverlay.classList.add('hidden');
+          countdownNumber.classList.remove('text-emerald-400');
+          isRacing = true;
+          raceStatusText.innerHTML = `<span class="text-emerald-400 font-bold">🏇 賽馬進行中！全力領跑中...</span>`;
+          updateRace();
+        }
+      }, 1000);
+    }
+
+    function finishRace() {
+      isRacing = false;
+      sound.stopGallop();
+      sound.playVictoryFanfare();
+
+      raceStatusText.innerHTML = `🏆 <span class="text-yellow-400 font-bold">賽事衝線完畢！前 ${winnerCount} 名幸運得獎誕生！</span>`;
+      finishBanner.style.opacity = '0';
+
+      triggerConfetti();
+      showResultsModal();
+
+      startRaceBtn.disabled = false;
+      namesTextarea.disabled = false;
+      winnerCountInput.disabled = false;
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 300);
+      }
+    }
+
+    function showResultsModal() {
+      const winners = raceResult.slice(0, winnerCount);
+
+      podium1.textContent = winners[0] || '無';
+      podium2.textContent = winners[1] || '無';
+      podium3.textContent = winners[2] || '無';
+
+      fullWinnersGrid.innerHTML = '';
+      winners.forEach((name, index) => {
+        const card = document.createElement('div');
+        const rank = index + 1;
+        let badgeStyle = 'bg-zinc-800 text-zinc-300 border-zinc-700';
+        let rankLabel = `#${rank}`;
+        
+        if (rank === 1) {
+          badgeStyle = 'bg-yellow-500/20 text-yellow-300 border-yellow-500 font-black';
+          rankLabel = '👑 冠軍';
+        } else if (rank === 2) {
+          badgeStyle = 'bg-slate-400/20 text-slate-200 border-slate-400 font-black';
+          rankLabel = '🥈 亞軍';
+        } else if (rank === 3) {
+          badgeStyle = 'bg-amber-700/20 text-amber-300 border-amber-600 font-black';
+          rankLabel = '🥉 季軍';
+        }
+
+        card.className = `p-2.5 rounded-xl border flex items-center justify-between gap-2 shadow-sm ${badgeStyle}`;
+        card.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="text-xs px-2 py-0.5 rounded bg-black/40 font-mono font-bold">${rankLabel}</span>
+            <span class="text-sm font-extrabold truncate text-white">${name}</span>
+          </div>
+          <span class="text-xs opacity-75">🎁</span>
+        `;
+        fullWinnersGrid.appendChild(card);
+      });
+
+      resultModal.classList.remove('hidden');
+      resultModal.classList.add('flex');
+    }
+
+    function copyWinnersToClipboard() {
+      const winners = raceResult.slice(0, winnerCount);
+      if (winners.length === 0) return;
+
+      const lines = [
+        `🏆【極速盃賽馬抽獎・得獎名單】🏆`,
+        `賽事日期：${new Date().toLocaleDateString('zh-TW')} ${new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'})}`,
+        `總參賽數：${participants.length} 位 | 抽出名額：前 ${winnerCount} 名`,
+        `--------------------------------`,
+        ...winners.map((name, i) => {
+          const prefix = i === 0 ? '🥇 冠軍' : (i === 1 ? '🥈 亞軍' : (i === 2 ? '🥉 季軍' : `第 ${i+1} 名`));
+          return `${prefix}：${name}`;
+        }),
+        `--------------------------------`,
+        `🎲 採用真均等隨機洗牌，公正公開！`
+      ];
+
+      const fullText = lines.join('\n');
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = fullText;
+      tempTextArea.style.position = 'fixed';
+      tempTextArea.style.opacity = '0';
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      try {
+        document.execCommand('copy');
+        copyToast.style.opacity = '1';
+        setTimeout(() => {
+          copyToast.style.opacity = '0';
+        }, 2500);
+      } catch (err) {
+        console.error('Copy failed', err);
+      }
+      document.body.removeChild(tempTextArea);
+    }
+
+    function resetRace() {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      isRacing = false;
+      sound.stopGallop();
+      horses = [];
+      raceProgress = 0;
+      raceStatusText.textContent = '等待鳴槍起跑...';
+      distanceHud.textContent = '1200 M';
+      finishBanner.style.opacity = '0';
+      liveTicker.style.opacity = '0';
+      startRaceBtn.disabled = false;
+      resetRaceBtn.disabled = true;
+      namesTextarea.disabled = false;
+      winnerCountInput.disabled = false;
+
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      drawTrack(0, w, h);
+      liveLeaderboard.innerHTML = '<span class="text-xs text-zinc-500 py-2 col-span-full">起跑後顯示前線雷達</span>';
+    }
+
+    function showCustomAlert(msg) {
+      const box = document.createElement('div');
+      box.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-amber-500 text-zinc-950 font-bold px-6 py-3 rounded-xl shadow-2xl z-50 transition-all text-sm border-2 border-white flex items-center gap-2';
+      box.innerHTML = `<span>⚠️</span> <span>${msg}</span>`;
+      document.body.appendChild(box);
+      setTimeout(() => {
+        box.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(box), 300);
+      }, 2500);
+    }
+
+    winnerCountInput.addEventListener('input', (e) => {
+      winnerCount = parseInt(e.target.value);
+      winnerCountDisplay.textContent = `${winnerCount} 名`;
+      modalWinnerCountSpan.textContent = winnerCount;
+    });
+
+    speedRangeInput.addEventListener('input', (e) => {
+      raceSpeedScale = parseFloat(e.target.value);
+      speedValueDisplay.textContent = `${raceSpeedScale}x ${raceSpeedScale <= 0.5 ? '慢速賞析' : '快速'}`;
+    });
+
+    namesTextarea.addEventListener('input', updateParticipantsFromInput);
+
+    resetDefaultBtn.addEventListener('click', () => {
+      initDefaultParticipants(150);
+    });
+
+    quickGenerateBtn.addEventListener('click', () => {
+      initDefaultParticipants(100);
+    });
+
+    startRaceBtn.addEventListener('click', startRaceCountdown);
+    resetRaceBtn.addEventListener('click', resetRace);
+
+    closeModalBtn.addEventListener('click', () => {
+      resultModal.classList.add('hidden');
+      resultModal.classList.remove('flex');
+    });
+    modalCloseBtn2.addEventListener('click', () => {
+      resultModal.classList.add('hidden');
+      resultModal.classList.remove('flex');
+    });
+
+    copyWinnersBtn.addEventListener('click', copyWinnersToClipboard);
+
+    soundToggleBtn.addEventListener('click', () => {
+      sound.init();
+      const on = sound.toggle();
+      soundIcon.textContent = on ? '🔊' : '🔇';
+      soundLabel.textContent = `音效：${on ? '開' : '關'}`;
+    });
+
+    configToggleBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('hidden');
+    });
+
+    window.onload = function() {
+      initDefaultParticipants(150);
+      resizeCanvas();
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      drawTrack(0, w, h);
+      liveLeaderboard.innerHTML = '<span class="text-xs text-zinc-500 py-2 col-span-full">起跑後即時更新</span>';
+    };
+  </script>
+</body>
+</html>
